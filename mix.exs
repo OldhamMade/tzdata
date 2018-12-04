@@ -25,6 +25,8 @@ defmodule Tzdata.Mixfile do
     [
       {:hackney, "~> 1.0"},
       {:ex_doc, "~> 0.18", only: :dev},
+      {:fastglobal, "~> 1.0"}, # https://github.com/discordapp/fastglobal
+      {:semaphore, "~> 1.0"}, # https://github.com/discordapp/fastglobal
     ]
   end
 
