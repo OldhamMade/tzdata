@@ -1,21 +1,32 @@
 defmodule Tzdata.ReleaseReader do
   @moduledoc false
 
-  def rules,                  do: simple_lookup(:rules) |> hd |> elem(1)
-  def zones,                  do: simple_lookup(:zones) |> hd |> elem(1)
-  def links,                  do: simple_lookup(:links) |> hd |> elem(1)
-  def zone_list,              do: simple_lookup(:zone_list) |> hd |> elem(1)
-  def link_list,              do: simple_lookup(:link_list) |> hd |> elem(1)
-  def zone_and_link_list,     do: simple_lookup(:zone_and_link_list) |> hd |> elem(1)
-  def archive_content_length, do: simple_lookup(:archive_content_length) |> hd |> elem(1)
-  def release_version,        do: simple_lookup(:release_version) |> hd |> elem(1)
-  def leap_sec_data,          do: simple_lookup(:leap_sec_data) |> hd |> elem(1)
-  def by_group,               do: simple_lookup(:by_group) |> hd |> elem(1)
-  def modified_at,            do: simple_lookup(:modified_at) |> hd |> elem(1)
+  def rules,                  do: simple_lookup(:tzdata_rules)
+  def zones,                  do: simple_lookup(:tzdata_zones)
+  def links,                  do: simple_lookup(:tzdata_links)
+  def zone_list,              do: simple_lookup(:tzdata_zone_list)
+  def link_list,              do: simple_lookup(:tzdata_link_list)
+  def zone_and_link_list,     do: simple_lookup(:tzdata_zone_and_link_list)
+  def archive_content_length, do: simple_lookup(:tzdata_archive_content_length)
+  def release_version,        do: simple_lookup(:tzdata_release_version)
+  def leap_sec_data,          do: simple_lookup(:tzdata_leap_sec_data)
+  def by_group,               do: simple_lookup(:tzdata_by_group)
+  def modified_at,            do: simple_lookup(:tzdata_modified_at)
 
   defp simple_lookup(key) do
-    :ets.lookup(current_release_from_table() |> table_name_for_release_name, key)
+    key =
+      case is_atom(key) do
+        false -> key |> String.to_atom()
+        true -> key
+      end
+
+    key
+    |> :persistent_term.get()
+    # |> wrap(key)
   end
+
+  defp wrap(nil, _key), do: []
+  defp wrap(result, key), do: [{key, result}]
 
   def zone(zone_name) do
     {:ok, zones()[zone_name]}
@@ -37,7 +48,7 @@ defmodule Tzdata.ReleaseReader do
   end
 
   def has_modified_at? do
-    simple_lookup(:modified_at) != []
+    simple_lookup(:modified_at) != nil
   end
 
   defp do_periods_for_zone(zone) do
@@ -51,8 +62,11 @@ defmodule Tzdata.ReleaseReader do
     end
   end
 
-  defp lookup_periods_for_zone(zone) when is_binary(zone),
-    do: simple_lookup(String.to_existing_atom(zone))
+  defp lookup_periods_for_zone(zone) when is_binary(zone) do
+    zone
+    |> add_atom_prefix()
+    |> simple_lookup()
+  end
 
   defp lookup_periods_for_zone(_), do: []
 
@@ -71,7 +85,8 @@ defmodule Tzdata.ReleaseReader do
   def delimiter_to_number(integer) when is_integer(integer), do: integer
 
   defp current_release_from_table do
-    :ets.lookup(:tzdata_current_release, :release_version) |> hd |> elem(1)
+    # :ets.lookup(:tzdata_current_release, :release_version) |> hd |> elem(1)
+    :persistent_term.get(:tzdata_current_release)
   end
 
   defp table_name_for_release_name(release_name) do
@@ -145,4 +160,17 @@ defmodule Tzdata.ReleaseReader do
         {:ok, []}
     end
   end
+
+  defp add_atom_prefix(key) when is_atom(key) do
+    with str <- Atom.to_string(key)
+      do
+      "tzdata_" <> str
+      |> String.to_atom()
+    end
+  end
+  defp add_atom_prefix(key) when is_bitstring(key) do
+    "tzdata_" <> key
+    |> String.to_atom()
+  end
+
 end
