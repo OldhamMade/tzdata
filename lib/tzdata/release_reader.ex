@@ -14,7 +14,18 @@ defmodule Tzdata.ReleaseReader do
   def modified_at,            do: simple_lookup(:modified_at) |> hd |> elem(1)
 
   defp simple_lookup(key) do
-    :ets.lookup(current_release_from_table() |> table_name_for_release_name, key)
+    lookup_table = current_release_from_table() |> table_name_for_release_name
+    final_key = :"#{lookup_table}@#{key}"
+    FastGlobalHelper.get(final_key, fn() ->
+      try do
+        case :ets.lookup(lookup_table, key) do
+          [] -> {:fast_global, :no_cache, []}
+          v -> v
+        end
+        rescue _ -> {:fast_global, :no_cache, []}
+        catch _ -> {:fast_global, :no_cache, []}
+      end
+    end)
   end
 
   def zone(zone_name) do
@@ -54,6 +65,8 @@ defmodule Tzdata.ReleaseReader do
   defp lookup_periods_for_zone(zone) when is_binary(zone),
     do: simple_lookup(String.to_existing_atom(zone))
 
+  defp lookup_periods_for_zone(zone) when is_binary(zone), do: simple_lookup(String.to_atom zone)
+  defp lookup_periods_for_zone(zone) when is_atom(zone), do: simple_lookup(zone)
   defp lookup_periods_for_zone(_), do: []
 
   @doc !"""
@@ -71,7 +84,15 @@ defmodule Tzdata.ReleaseReader do
   def delimiter_to_number(integer) when is_integer(integer), do: integer
 
   defp current_release_from_table do
-    :ets.lookup(:tzdata_current_release, :release_version) |> hd |> elem(1)
+    FastGlobalHelper.get(:tzdata_opt_release_version,
+      fn() ->
+        try do
+          :ets.lookup(:tzdata_current_release, :release_version) |> hd |> elem(1)
+        rescue _ -> {:fast_global, :no_cache, nil}
+        catch _ -> {:fast_global, :no_cache, nil}
+        end
+      end
+    )
   end
 
   defp table_name_for_release_name(release_name) do
@@ -146,3 +167,4 @@ defmodule Tzdata.ReleaseReader do
     end
   end
 end
+

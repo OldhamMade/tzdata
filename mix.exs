@@ -32,7 +32,9 @@ defmodule Tzdata.Mixfile do
   defp deps do
     [
       {:hackney, "~> 1.0"},
-      {:ex_doc, "~> 0.21", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.21", only: :dev, runtime: false},
+      {:fastglobal, "~> 1.0"}, # https://github.com/discordapp/fastglobal
+      {:semaphore, "~> 1.0"}, # https://github.com/discordapp/fastglobal
     ]
   end
 
