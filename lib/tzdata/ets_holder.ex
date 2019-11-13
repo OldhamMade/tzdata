@@ -70,6 +70,7 @@ defmodule Tzdata.EtsHolder do
 
   defp set_current_release(release_version) do
     # Logger.debug "Tzdata setting current release version to #{release_version}"
+    FastGlobalHelper.put(:tzdata_opt_release_version, release_version)
     :ets.insert(:tzdata_current_release, {:release_version, release_version})
   end
 
