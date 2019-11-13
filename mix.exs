@@ -26,15 +26,15 @@ defmodule Tzdata.Mixfile do
     ]
   end
 
-  defp applications(:dev), do: [:hackney]
-  defp applications(_), do: []
+  defp applications(:dev), do: [:semaphore, :hackney]
+  defp applications(_), do: [:semaphore]
 
   defp deps do
     [
       {:hackney, "~> 1.0"},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
       {:fastglobal, "~> 1.0"}, # https://github.com/discordapp/fastglobal
-      {:semaphore, "~> 1.0"}, # https://github.com/discordapp/fastglobal
+      {:semaphore, "~> 1.0"}, # https://github.com/discordapp/semaphore
     ]
   end
 

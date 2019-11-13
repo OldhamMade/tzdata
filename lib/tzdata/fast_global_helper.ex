@@ -1,6 +1,4 @@
-
 defmodule FastGlobalHelper do
-
 
   #-------------------
   # sync_record
