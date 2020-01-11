@@ -31,6 +31,7 @@ defmodule Tzdata.DataBuilder do
     ets_table_name = ets_table_name_for_release_version(release_version)
     table = :ets.new(ets_table_name, [:bag, :named_table])
     {:ok, map} = Tzdata.BasicDataMap.from_files_in_dir(tzdata_dir)
+
     :ets.insert(table, {:release_version, release_version})
     :ets.insert(table, {:archive_content_length, content_length})
     :ets.insert(table, {:rules, map.rules})
@@ -42,6 +43,8 @@ defmodule Tzdata.DataBuilder do
     :ets.insert(table, {:by_group, map.by_group})
     :ets.insert(table, {:leap_sec_data, leap_sec_data(tzdata_dir)})
     :ets.insert(table, {:modified_at, modified_at})
+
+
 
     map.zone_list
     |> Enum.each(fn zone_name ->
