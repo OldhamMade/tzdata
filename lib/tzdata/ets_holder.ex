@@ -14,7 +14,6 @@ defmodule Tzdata.EtsHolder do
 
   def init([]) do
     make_sure_a_release_is_on_file()
-    create_current_release_ets_table()
     {:ok, release_name} = load_release()
     {:ok, release_name}
   end
@@ -60,17 +59,52 @@ defmodule Tzdata.EtsHolder do
 
   defp load_ets_table(release_name) do
     file_name = "#{release_dir()}/#{release_name}.v#{@file_version}.ets"
-    {:ok, _table} = :ets.file2tab(:erlang.binary_to_list(file_name))
+    {:ok, table} = :ets.file2tab(:erlang.binary_to_list(file_name))
+    map_lookup_to_persistent_terms(release_name, table)
+    map_periods_to_persistent_terms(release_name, table)
   end
 
-  defp create_current_release_ets_table do
-    table = :ets.new(:tzdata_current_release, [:set, :named_table])
-    {:ok, table}
+  defp map_lookup_to_persistent_terms(release_name, table) do
+    :ets.tab2list(table)
+    |> Enum.reject(&(tuple_size(&1) != 2))
+    |> Enum.map(&store_persistent_term/1)
+  end
+
+  defp store_persistent_term({key, value}) do
+    key
+    |> add_atom_prefix()
+    |> :persistent_term.put(value)
+  end
+  defp store_lookup_persistent_term(_any) do
+  end
+
+  defp add_atom_prefix(key) when is_atom(key) do
+    with str <- Atom.to_string(key)
+      do
+      "tzdata_" <> str
+      |> String.to_atom()
+    end
+  end
+  defp add_atom_prefix(key) when is_bitstring(key) do
+    "tzdata_" <> key
+    |> String.to_atom()
+  end
+
+  defp map_periods_to_persistent_terms(release_name, table) do
+    :ets.tab2list(table)
+    |> Enum.filter(&(tuple_size(&1) > 2))
+    |> Enum.group_by(&(elem(&1, 0)))
+    # |> IO.inspect(label: "period")
+    |> Enum.map(&store_persistent_term/1)
+  end
+
+  defp term_for_release_version(release_version) do
+    "tzdata_rel_#{release_version}" |> String.to_atom()
   end
 
   defp set_current_release(release_version) do
-    # Logger.debug "Tzdata setting current release version to #{release_version}"
-    :ets.insert(:tzdata_current_release, {:release_version, release_version})
+    Logger.debug "Tzdata setting current release version persistent term to #{release_version}"
+    :persistent_term.put(:tzdata_current_release, release_version)
   end
 
   defp make_sure_a_release_is_on_file do
